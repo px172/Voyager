@@ -9,6 +9,7 @@ from langchain.vectorstores import Chroma
 from voyager.prompts import load_prompt
 from voyager.control_primitives import load_control_primitives
 
+from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 
 class SkillManager:
     def __init__(
@@ -19,6 +20,7 @@ class SkillManager:
         request_timout=120,
         ckpt_dir="ckpt",
         resume=False,
+        embedding_model="./embedding/paraphrase-multilingual-MiniLM-L12-v2",
     ):
         self.llm = ChatOpenAI(
             model_name=model_name,
@@ -39,7 +41,8 @@ class SkillManager:
         self.ckpt_dir = ckpt_dir
         self.vectordb = Chroma(
             collection_name="skill_vectordb",
-            embedding_function=OpenAIEmbeddings(),
+            #embedding_function=OpenAIEmbeddings(),
+            embedding_function=HuggingFaceEmbeddings(model_name=embedding_model),
             persist_directory=f"{ckpt_dir}/skill/vectordb",
         )
         assert self.vectordb._collection.count() == len(self.skills), (

@@ -11,6 +11,7 @@ from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.schema import HumanMessage, SystemMessage
 from langchain.vectorstores import Chroma
 
+from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 
 class CurriculumAgent:
     def __init__(
@@ -25,6 +26,7 @@ class CurriculumAgent:
         mode="auto",
         warm_up=None,
         core_inventory_items: str | None = None,
+        embedding_model="./embedding/paraphrase-multilingual-MiniLM-L12-v2",
     ):
         self.llm = ChatOpenAI(
             model_name=model_name,
@@ -57,7 +59,8 @@ class CurriculumAgent:
         # vectordb for qa cache
         self.qa_cache_questions_vectordb = Chroma(
             collection_name="qa_cache_questions_vectordb",
-            embedding_function=OpenAIEmbeddings(),
+            #embedding_function=OpenAIEmbeddings(),
+            embedding_function=HuggingFaceEmbeddings(model_name=embedding_model),
             persist_directory=f"{ckpt_dir}/curriculum/vectordb",
         )
         assert self.qa_cache_questions_vectordb._collection.count() == len(

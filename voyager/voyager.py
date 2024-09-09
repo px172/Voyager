@@ -21,6 +21,7 @@ class Voyager:
         azure_login: Dict[str, str] = None,
         server_port: int = 3000,
         openai_api_key: str = None,
+        openai_api_base: str = "https://api.openai.com/v1",
         env_wait_ticks: int = 20,
         env_request_timeout: int = 600,
         max_iterations: int = 160,
@@ -48,6 +49,7 @@ class Voyager:
         ckpt_dir: str = "ckpt",
         skill_library_dir: str = None,
         resume: bool = False,
+        embedding_model: str = "./embedding/paraphrase-multilingual-MiniLM-L12-v2",
     ):
         """
         The main class for Voyager.
@@ -99,6 +101,7 @@ class Voyager:
         :param ckpt_dir: checkpoint dir
         :param skill_library_dir: skill library dir
         :param resume: whether to resume from checkpoint
+        :param embedding_model: HuggingFaceEmbeddings model name
         """
         # init env
         self.env = VoyagerEnv(
@@ -113,6 +116,7 @@ class Voyager:
 
         # set openai api key
         os.environ["OPENAI_API_KEY"] = openai_api_key
+        os.environ["OPENAI_API_BASE"] = openai_api_base
 
         # init agents
         self.action_agent = ActionAgent(
@@ -136,6 +140,7 @@ class Voyager:
             mode=curriculum_agent_mode,
             warm_up=curriculum_agent_warm_up,
             core_inventory_items=curriculum_agent_core_inventory_items,
+            embedding_model = embedding_model,
         )
         self.critic_agent = CriticAgent(
             model_name=critic_agent_model_name,
@@ -150,6 +155,7 @@ class Voyager:
             request_timout=openai_api_request_timeout,
             ckpt_dir=skill_library_dir if skill_library_dir else ckpt_dir,
             resume=True if resume or skill_library_dir else False,
+            embedding_model = embedding_model,
         )
         self.recorder = U.EventRecorder(ckpt_dir=ckpt_dir, resume=resume)
         self.resume = resume
