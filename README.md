@@ -1,3 +1,47 @@
+# Notes for this fork
+First, I would like to thank Voyager's original authors and users who have contributed to the project in discussion and PRs in the original [repo](https://github.com/MineDojo/Voyager). This fork is mainly for personal interest, learning, and having fun with kids.
+
+The original model is bundled with OpenAI API calls, and I am curious to explore the capabilities of other LLMs. Also, it would be good to save money to utilize local LLM applications.  The fork made some changes so that users can specify the API URL and embedding model and evaluate various LLMs depending on their interests.
+
+The following python packages are required for utilizing 3rd party embedding model:
+```
+pip install langchain-community
+pip install sentence-transformers
+```
+The embedding model can be specified when initializing the Voyager:
+
+```
+embedding_model = '/path/to/embedding/model'
+openai_api_key = 'your openai api key'
+openai_api_base = 'URL to OpenAI compatiable API'  
+mc_port = 55566
+
+voyager = Voyager(
+    mc_port=mc_port,
+    openai_api_key=openai_api_key,
+    openai_api_base=openai_api_base,
+    embedding_model = embedding_model
+)
+```
+## Issues of Note.js installation
+
+1. Windows user can use node.js v20.9.0 and npm v10.1.0. [Reference](https://github.com/MineDojo/Voyager/issues/139#issuecomment-1958500719).
+2. When install mineflayer-collectblock, you may encounter errors. If so, please try remove the {package_root}/voyager/env/mineflayer/node_modules/mineflayer/node_modules/prismarine-block and run ``` npx tsc ``` again. [Reference](https://github.com/MineDojo/Voyager/issues/127#issuecomment-1759257563).
+
+## Starting Minecraft instance
+1. Check this [PR](https://github.com/MineDojo/Voyager/pull/100#issue-1763089108) for running a dedicated minecraft server.
+2. The User should set the game mode to survival. Otherwise, bricks are not collected into bot's inventory. And the bot should have the op privilege in the game. It needs to execute some op commands during the learning.
+
+## LLM Performance of the learning
+
+1. This fork is tested with the Meta Llama 3.1 70B (llama-3.1-70b-versatile provided by Groq). The bot took about ~50 iterations to learn how to craft iron tools from scratch. 
+2. Be aware of API usage if you are using paid LLM API services.
+
+
+
+Happy Minecrafting! 
+
+---
 # Voyager: An Open-Ended Embodied Agent with Large Language Models
 <div align="center">
 
