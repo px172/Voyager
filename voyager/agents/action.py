@@ -10,6 +10,8 @@ from langchain.schema import AIMessage, HumanMessage, SystemMessage
 from voyager.prompts import load_prompt
 from voyager.control_primitives_context import load_control_primitives_context
 
+from langchain_community.llms import Ollama
+from langchain_core.prompts import PromptTemplate
 
 class ActionAgent:
     def __init__(
@@ -21,6 +23,8 @@ class ActionAgent:
         resume=False,
         chat_log=True,
         execution_error=True,
+        useOllama=False,
+        ollama_model_name="ollama_model_name"
     ):
         self.ckpt_dir = ckpt_dir
         self.chat_log = chat_log
@@ -36,6 +40,12 @@ class ActionAgent:
             temperature=temperature,
             request_timeout=request_timout,
         )
+        if useOllama:
+            self.llm = Ollama(model=ollama_model_name, stop=["<|eot_id|>"]) # Added stop token
+            self.model_name = ollama_model_name
+        else:
+            self.model_name = model_name
+        
 
     def update_chest_memory(self, chests):
         for position, chest in chests.items():
@@ -83,7 +93,7 @@ class ActionAgent:
             "smeltItem",
             "killMob",
         ]
-        if not self.llm.model_name == "gpt-3.5-turbo":
+        if not self.model_name == "gpt-3.5-turbo":
             base_skills += [
                 "useChest",
                 "mineflayer",

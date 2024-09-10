@@ -12,6 +12,10 @@ from .agents import CriticAgent
 from .agents import CurriculumAgent
 from .agents import SkillManager
 
+#
+from langchain_community.llms import Ollama
+from langchain_core.prompts import PromptTemplate
+from langchain.schema import AIMessage, HumanMessage, SystemMessage
 
 # TODO: remove event memory
 class Voyager:
@@ -50,6 +54,8 @@ class Voyager:
         skill_library_dir: str = None,
         resume: bool = False,
         embedding_model: str = "./embedding/paraphrase-multilingual-MiniLM-L12-v2",
+        useOllama: bool = False,
+        ollama_model_name: str = "llama3.1:8b-instruct-q6_K"
     ):
         """
         The main class for Voyager.
@@ -127,6 +133,8 @@ class Voyager:
             resume=resume,
             chat_log=action_agent_show_chat_log,
             execution_error=action_agent_show_execution_error,
+            useOllama=useOllama,
+            ollama_model_name=ollama_model_name,
         )
         self.action_agent_task_max_retries = action_agent_task_max_retries
         self.curriculum_agent = CurriculumAgent(
@@ -167,6 +175,9 @@ class Voyager:
         self.messages = None
         self.conversations = []
         self.last_events = None
+
+        # option to use ollama
+        self.useOllama = useOllama
 
     def reset(self, task, context="", reset_env=True):
         self.action_agent_rollout_num_iter = 0
@@ -209,7 +220,16 @@ class Voyager:
     def step(self):
         if self.action_agent_rollout_num_iter < 0:
             raise ValueError("Agent must be reset before stepping")
-        ai_message = self.action_agent.llm(self.messages)
+        print("ollama-test")
+        ai_message = AIMessage(content="NA")
+        if self.useOllama:
+            ollama_prompt = self.gen_ollama_response(self.messages[1], self.messages[0])
+            #print(ollama_prompt)
+            #ai_message = self.action_agent.llm.invoke(ollama_prompt)
+            ai_message = AIMessage(content=self.action_agent.llm.invoke(ollama_prompt))
+        else:
+            ai_message = self.action_agent.llm.invoke(self.messages)
+
         print(f"\033[34m****Action Agent ai message****\n{ai_message.content}\033[0m")
         self.conversations.append(
             (self.messages[0].content, self.messages[1].content, ai_message.content)
@@ -415,3 +435,24 @@ class Voyager:
             print(
                 f"\033[35mFailed tasks: {', '.join(self.curriculum_agent.failed_tasks)}\033[0m"
             )
+    
+    def gen_ollama_response(self, user_prompt, system_prompt):
+        # NOTE: No f string and no whitespace in curly braces
+        template = """
+            <|begin_of_text|>
+            <|start_header_id|>system<|end_header_id|>
+            {system_prompt}
+            <|eot_id|>
+            <|start_header_id|>user<|end_header_id|>
+            {user_prompt}
+            <|eot_id|>
+            <|start_header_id|>assistant<|end_header_id|>
+            """
+
+        # Added prompt template
+        prompt = PromptTemplate(
+            input_variables=["system_prompt", "user_prompt"],
+            template=template
+            )
+            
+        return prompt.format(system_prompt=system_prompt, user_prompt=user_prompt)
