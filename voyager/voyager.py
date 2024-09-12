@@ -137,9 +137,9 @@ class Voyager:
             resume=resume,
             chat_log=action_agent_show_chat_log,
             execution_error=action_agent_show_execution_error,
-            useOllama=useOllama,
-            ollama_model_name=ollama_model_name,
-            llm = self.llm
+            useOllama=False,
+            #ollama_model_name=ollama_model_name,
+            #llm = self.llm
         )
         self.action_agent_task_max_retries = action_agent_task_max_retries
         self.curriculum_agent = CurriculumAgent(
@@ -236,7 +236,7 @@ class Voyager:
             raise ValueError("Agent must be reset before stepping")
         print("ollama-test")
         ai_message = AIMessage(content="NA")
-        if self.useOllama:
+        if self.action_agent.useOllama:
             ollama_prompt = self.gen_ollama_prompt(self.messages[1], self.messages[0])
             #print(ollama_prompt)
             #ai_message = self.action_agent.llm.invoke(ollama_prompt)
