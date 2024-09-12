@@ -13,6 +13,13 @@ from langchain.vectorstores import Chroma
 
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 
+from langchain_community.llms import Ollama
+from langchain_core.prompts import PromptTemplate
+from langchain.schema import AIMessage
+from voyager.agents.LLMagents import gen_ollama_prompt
+
+# messages[1], self.messages[0]
+
 class CurriculumAgent:
     def __init__(
         self,
@@ -27,6 +34,9 @@ class CurriculumAgent:
         warm_up=None,
         core_inventory_items: str | None = None,
         embedding_model="./embedding/paraphrase-multilingual-MiniLM-L12-v2",
+        useOllama=False,
+        ollama_model_name="ollama_model_name",
+        llm="None"
     ):
         self.llm = ChatOpenAI(
             model_name=model_name,
@@ -38,6 +48,16 @@ class CurriculumAgent:
             temperature=qa_temperature,
             request_timeout=request_timout,
         )
+
+        self.useOllama = useOllama
+        self.ollama_model_name = ollama_model_name
+
+        if useOllama:
+            self.llm = llm
+            self.qa_llm = llm
+        
+        self.model_name = model_name
+
         assert mode in [
             "auto",
             "manual",
@@ -295,7 +315,13 @@ class CurriculumAgent:
     def propose_next_ai_task(self, *, messages, max_retries=5):
         if max_retries == 0:
             raise RuntimeError("Max retries reached, failed to propose ai task.")
-        curriculum = self.llm(messages).content
+        
+        if self.useOllama:
+            ollama_prompt = gen_ollama_prompt(messages[1], messages[0])
+            curriculum = self.llm.invoke(ollama_prompt)
+        else:
+            curriculum = self.llm.invoke(messages).content
+
         print(f"\033[31m****Curriculum Agent ai message****\n{curriculum}\033[0m")
         try:
             response = self.parse_ai_message(curriculum)
@@ -380,7 +406,13 @@ class CurriculumAgent:
         print(
             f"\033[31m****Curriculum Agent task decomposition****\nFinal task: {task}\033[0m"
         )
-        response = self.llm(messages).content
+
+        if self.useOllama:
+            ollama_prompt = gen_ollama_prompt(messages[1], messages[0])
+            response = self.llm.invoke(ollama_prompt)
+        else:
+            response = self.llm.invoke(messages).content
+
         print(f"\033[31m****Curriculum Agent task decomposition****\n{response}\033[0m")
         return fix_and_parse_json(response)
 
@@ -462,7 +494,11 @@ class CurriculumAgent:
                 events=events, chest_observation=chest_observation
             ),
         ]
-        qa_response = self.qa_llm(messages).content
+        if self.useOllama:
+            ollama_prompt = gen_ollama_prompt(messages[1], messages[0])
+            qa_response = self.qa_llm.invoke(ollama_prompt)
+        else:
+            qa_response = self.qa_llm.invoke(messages).content
         try:
             # Regex pattern to extract question and concept pairs
             pattern = r"Question \d+: (.+)\nConcept \d+: (.+)"
@@ -496,6 +532,10 @@ class CurriculumAgent:
             self.render_human_message_qa_step2_answer_questions(question=question),
         ]
         print(f"\033[35mCurriculum Agent Question: {question}\033[0m")
-        qa_answer = self.qa_llm(messages).content
+        if self.useOllama:
+            ollama_prompt = gen_ollama_prompt(messages[1], messages[0])
+            qa_answer = self.qa_llm.invoke(ollama_prompt)
+        else:
+            qa_answer = self.qa_llm.invoke(messages).content
         print(f"\033[31mCurriculum Agent {qa_answer}\033[0m")
         return qa_answer

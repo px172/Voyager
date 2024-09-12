@@ -3,6 +3,11 @@ from voyager.utils.json_utils import fix_and_parse_json
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
 
+from langchain_community.llms import Ollama
+from langchain_core.prompts import PromptTemplate
+from langchain.schema import AIMessage
+from voyager.agents.LLMagents import gen_ollama_prompt
+
 
 class CriticAgent:
     def __init__(
@@ -11,6 +16,9 @@ class CriticAgent:
         temperature=0,
         request_timout=120,
         mode="auto",
+        useOllama=False,
+        ollama_model_name="ollama_model_name",
+        llm="None"
     ):
         self.llm = ChatOpenAI(
             model_name=model_name,
@@ -19,6 +27,14 @@ class CriticAgent:
         )
         assert mode in ["auto", "manual"]
         self.mode = mode
+
+        self.useOllama = useOllama
+        self.ollama_model_name = ollama_model_name
+
+        if useOllama:
+            self.llm = llm
+    
+        self.model_name = model_name
 
     def render_system_message(self):
         system_message = SystemMessage(content=load_prompt("critic"))
@@ -98,7 +114,12 @@ class CriticAgent:
         if messages[1] is None:
             return False, ""
 
-        critic = self.llm(messages).content
+        if self.useOllama:
+            ollama_prompt = gen_ollama_prompt(messages[1], messages[0])
+            critic = self.llm.invoke(ollama_prompt)
+        else:
+            critic = self.llm.invoke(messages).content
+
         print(f"\033[31m****Critic Agent ai message****\n{critic}\033[0m")
         try:
             response = fix_and_parse_json(critic)

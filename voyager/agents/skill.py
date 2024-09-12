@@ -11,6 +11,12 @@ from voyager.control_primitives import load_control_primitives
 
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 
+from langchain_community.llms import Ollama
+from langchain_core.prompts import PromptTemplate
+from langchain.schema import AIMessage
+from voyager.agents.LLMagents import gen_ollama_prompt
+
+
 class SkillManager:
     def __init__(
         self,
@@ -21,12 +27,24 @@ class SkillManager:
         ckpt_dir="ckpt",
         resume=False,
         embedding_model="./embedding/paraphrase-multilingual-MiniLM-L12-v2",
+        useOllama=False,
+        ollama_model_name="ollama_model_name",
+        llm="None"
     ):
         self.llm = ChatOpenAI(
             model_name=model_name,
             temperature=temperature,
             request_timeout=request_timout,
         )
+
+        self.useOllama = useOllama
+        self.ollama_model_name = ollama_model_name
+
+        if useOllama:
+            self.llm = llm
+    
+        self.model_name = model_name
+
         U.f_mkdir(f"{ckpt_dir}/skill/code")
         U.f_mkdir(f"{ckpt_dir}/skill/description")
         U.f_mkdir(f"{ckpt_dir}/skill/vectordb")
@@ -111,7 +129,14 @@ class SkillManager:
                 + f"The main function is `{program_name}`."
             ),
         ]
-        skill_description = f"    // { self.llm(messages).content}"
+
+        if self.useOllama:
+            ollama_prompt = gen_ollama_prompt(messages[1], messages[0])
+            output = self.llm.invoke(ollama_prompt)
+            skill_description = f"    // { output}"
+        else:
+            skill_description = f"    // { self.llm(messages).content}"
+
         return f"async function {program_name}(bot) {{\n{skill_description}\n}}"
 
     def retrieve_skills(self, query):

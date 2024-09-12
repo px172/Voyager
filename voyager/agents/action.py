@@ -12,6 +12,7 @@ from voyager.control_primitives_context import load_control_primitives_context
 
 from langchain_community.llms import Ollama
 from langchain_core.prompts import PromptTemplate
+from voyager.agents.LLMagents import gen_ollama_prompt
 
 class ActionAgent:
     def __init__(
@@ -24,7 +25,8 @@ class ActionAgent:
         chat_log=True,
         execution_error=True,
         useOllama=False,
-        ollama_model_name="ollama_model_name"
+        ollama_model_name="ollama_model_name",
+        llm="None"
     ):
         self.ckpt_dir = ckpt_dir
         self.chat_log = chat_log
@@ -40,11 +42,12 @@ class ActionAgent:
             temperature=temperature,
             request_timeout=request_timout,
         )
+        self.useOllama = useOllama
+        self.ollama_model_name = ollama_model_name
         if useOllama:
-            self.llm = Ollama(model=ollama_model_name, stop=["<|eot_id|>"]) # Added stop token
-            self.model_name = ollama_model_name
-        else:
-            self.model_name = model_name
+            self.llm = llm
+
+        self.model_name = model_name
         
 
     def update_chest_memory(self, chests):

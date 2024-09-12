@@ -16,6 +16,7 @@ from .agents import SkillManager
 from langchain_community.llms import Ollama
 from langchain_core.prompts import PromptTemplate
 from langchain.schema import AIMessage, HumanMessage, SystemMessage
+from langchain_community.llms import Ollama
 
 # TODO: remove event memory
 class Voyager:
@@ -124,6 +125,9 @@ class Voyager:
         os.environ["OPENAI_API_KEY"] = openai_api_key
         os.environ["OPENAI_API_BASE"] = openai_api_base
 
+        if useOllama:
+            self.llm = Ollama(model=ollama_model_name, stop=["<|eot_id|>"]) # Added stop token
+
         # init agents
         self.action_agent = ActionAgent(
             model_name=action_agent_model_name,
@@ -135,6 +139,7 @@ class Voyager:
             execution_error=action_agent_show_execution_error,
             useOllama=useOllama,
             ollama_model_name=ollama_model_name,
+            llm = self.llm
         )
         self.action_agent_task_max_retries = action_agent_task_max_retries
         self.curriculum_agent = CurriculumAgent(
@@ -149,12 +154,18 @@ class Voyager:
             warm_up=curriculum_agent_warm_up,
             core_inventory_items=curriculum_agent_core_inventory_items,
             embedding_model = embedding_model,
+            useOllama=useOllama,
+            ollama_model_name=ollama_model_name,
+            llm = self.llm
         )
         self.critic_agent = CriticAgent(
             model_name=critic_agent_model_name,
             temperature=critic_agent_temperature,
             request_timout=openai_api_request_timeout,
             mode=critic_agent_mode,
+            useOllama=useOllama,
+            ollama_model_name=ollama_model_name,
+            llm = self.llm
         )
         self.skill_manager = SkillManager(
             model_name=skill_manager_model_name,
@@ -164,6 +175,9 @@ class Voyager:
             ckpt_dir=skill_library_dir if skill_library_dir else ckpt_dir,
             resume=True if resume or skill_library_dir else False,
             embedding_model = embedding_model,
+            useOllama=useOllama,
+            ollama_model_name=ollama_model_name,
+            llm = self.llm
         )
         self.recorder = U.EventRecorder(ckpt_dir=ckpt_dir, resume=resume)
         self.resume = resume
@@ -223,7 +237,7 @@ class Voyager:
         print("ollama-test")
         ai_message = AIMessage(content="NA")
         if self.useOllama:
-            ollama_prompt = self.gen_ollama_response(self.messages[1], self.messages[0])
+            ollama_prompt = self.gen_ollama_prompt(self.messages[1], self.messages[0])
             #print(ollama_prompt)
             #ai_message = self.action_agent.llm.invoke(ollama_prompt)
             ai_message = AIMessage(content=self.action_agent.llm.invoke(ollama_prompt))
@@ -436,7 +450,7 @@ class Voyager:
                 f"\033[35mFailed tasks: {', '.join(self.curriculum_agent.failed_tasks)}\033[0m"
             )
     
-    def gen_ollama_response(self, user_prompt, system_prompt):
+    def gen_ollama_prompt(self, user_prompt, system_prompt):
         # NOTE: No f string and no whitespace in curly braces
         template = """
             <|begin_of_text|>
