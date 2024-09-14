@@ -12,6 +12,8 @@ from .agents import CriticAgent
 from .agents import CurriculumAgent
 from .agents import SkillManager
 
+from .agents.LLMagents import gen_ollama_prompt
+
 #
 from langchain_community.llms import Ollama
 from langchain_core.prompts import PromptTemplate
@@ -234,14 +236,12 @@ class Voyager:
     def step(self):
         if self.action_agent_rollout_num_iter < 0:
             raise ValueError("Agent must be reset before stepping")
-        print("ollama-test")
-        ai_message = AIMessage(content="NA")
         if self.action_agent.useOllama:
-            ollama_prompt = self.gen_ollama_prompt(self.messages[1], self.messages[0])
-            #print(ollama_prompt)
-            #ai_message = self.action_agent.llm.invoke(ollama_prompt)
+            print("Action agent use ollama")
+            ollama_prompt = gen_ollama_prompt(self.messages[1], self.messages[0])
             ai_message = AIMessage(content=self.action_agent.llm.invoke(ollama_prompt))
         else:
+            print("Action agent use API")
             ai_message = self.action_agent.llm.invoke(self.messages)
 
         print(f"\033[34m****Action Agent ai message****\n{ai_message.content}\033[0m")
@@ -449,24 +449,3 @@ class Voyager:
             print(
                 f"\033[35mFailed tasks: {', '.join(self.curriculum_agent.failed_tasks)}\033[0m"
             )
-    
-    def gen_ollama_prompt(self, user_prompt, system_prompt):
-        # NOTE: No f string and no whitespace in curly braces
-        template = """
-            <|begin_of_text|>
-            <|start_header_id|>system<|end_header_id|>
-            {system_prompt}
-            <|eot_id|>
-            <|start_header_id|>user<|end_header_id|>
-            {user_prompt}
-            <|eot_id|>
-            <|start_header_id|>assistant<|end_header_id|>
-            """
-
-        # Added prompt template
-        prompt = PromptTemplate(
-            input_variables=["system_prompt", "user_prompt"],
-            template=template
-            )
-            
-        return prompt.format(system_prompt=system_prompt, user_prompt=user_prompt)
